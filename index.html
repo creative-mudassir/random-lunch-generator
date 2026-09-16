@@ -92,6 +92,12 @@
         .generate-btn:active {
             transform: translateY(0);
         }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
         
         .footer {
             margin-top: 30px;
@@ -168,19 +174,53 @@
                 { name: "BBQ", icon: "fas fa-fire" }
             ];
             
+            // Shuffle-without-replacement state
+            let shuffledQueue = [];
+            let queueIndex = 0;
+            let lastShownLunch = null;
+
+            // Fisher-Yates shuffle (returns a new shuffled copy)
+            function shuffleArray(array) {
+                const result = [...array];
+                for (let i = result.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [result[i], result[j]] = [result[j], result[i]];
+                }
+                return result;
+            }
+
+            // Get the next lunch from the shuffled queue, reshuffling once it's exhausted
+            function getNextLunch() {
+                if (queueIndex >= shuffledQueue.length) {
+                    shuffledQueue = shuffleArray(lunchMenu);
+                    queueIndex = 0;
+
+                    // Avoid repeating the last item shown right before this reshuffle
+                    if (lastShownLunch && shuffledQueue[0].name === lastShownLunch.name && shuffledQueue.length > 1) {
+                        const swapWith = 1 + Math.floor(Math.random() * (shuffledQueue.length - 1));
+                        [shuffledQueue[0], shuffledQueue[swapWith]] = [shuffledQueue[swapWith], shuffledQueue[0]];
+                    }
+                }
+
+                const selectedLunch = shuffledQueue[queueIndex];
+                queueIndex++;
+                lastShownLunch = selectedLunch;
+                return selectedLunch;
+            }
+
             // Function to generate random lunch
             function generateRandomLunch() {
                 // Remove fade-in class if it exists
                 lunchDisplay.classList.remove('fade-in');
-                
-                // Get a random lunch option
-                const randomIndex = Math.floor(Math.random() * lunchMenu.length);
-                const selectedLunch = lunchMenu[randomIndex];
-                
+
+                // Get the next lunch option from the shuffled queue
+                const selectedLunch = getNextLunch();
+
                 // Briefly show loading state
+                generateBtn.disabled = true;
                 foodIcon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 foodName.textContent = "Thinking...";
-                
+
                 // After a short delay, show the selected lunch
                 setTimeout(() => {
                     foodIcon.innerHTML = `<i class="${selectedLunch.icon}"></i>`;
@@ -195,6 +235,7 @@
 
                     // Add animation class
                     lunchDisplay.classList.add('fade-in');
+                    generateBtn.disabled = false;
                 }, 500);
             }
             
